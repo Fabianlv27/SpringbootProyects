@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title>Sistema RRHH - Home</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { padding-top: 3.5rem; }
+  </style>
+</head>
+<body>
+
+<header th:replace="~{fragments/menu :: barra-navegacion}"></header>
+
+<main class="container mt-5">
+  <div class="bg-light p-5 rounded">
+    <h1>Bienvenido al Sistema de Gestión</h1>
+    <p class="lead">Esta aplicación gestiona la base de datos de Empleados (EMP) y Departamentos (DEPT).</p>
+
+    <hr class="my-4">
+
+    <div th:if="${param.logout}" class="alert alert-success">
+      Has cerrado sesión correctamente.
+    </div>
+
+    <a class="btn btn-lg btn-primary" th:href="@{/empleados/index}" role="button">Ver Empleados &raquo;</a>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,31 +1,35 @@
 package com.fabian.model;
 
+import jakarta.persistence.*;
+import java.util.List;
+
+@Entity
+@Table(name = "dept")
 public class Dept {
 
-    private int deptno;
-    private String dname;
+    @Id
+    private Integer deptno;
+
+    private String dname; // El nombre exacto es importante
     private String loc;
 
+    @OneToMany(mappedBy = "dept", fetch = FetchType.LAZY)
+    private List<Emp> empleados;
 
-    public Dept() {
-    }
+    // --- CONSTRUCTOR VACÍO (Requerido por JPA) ---
+    public Dept() { }
 
- 
-    public Dept(int deptno, String dname, String loc) {
-        this.deptno = deptno;
-        this.dname = dname;
-        this.loc = loc;
-    }
+    // --- GETTERS Y SETTERS (Cruciales para Thymeleaf) ---
 
-
-    public int getDeptno() {
+    public Integer getDeptno() {
         return deptno;
     }
 
-    public void setDeptno(int deptno) {
+    public void setDeptno(Integer deptno) {
         this.deptno = deptno;
     }
 
+    // OJO AQUÍ: Thymeleaf busca getDname() cuando escribes .dname
     public String getDname() {
         return dname;
     }
@@ -40,5 +44,13 @@ public class Dept {
 
     public void setLoc(String loc) {
         this.loc = loc;
+    }
+
+    public List<Emp> getEmpleados() {
+        return empleados;
+    }
+
+    public void setEmpleados(List<Emp> empleados) {
+        this.empleados = empleados;
     }
 }
