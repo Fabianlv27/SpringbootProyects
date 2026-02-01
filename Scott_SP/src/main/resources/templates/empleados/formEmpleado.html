@@ -20,7 +20,7 @@
     <div class="card-body">
 
       <form th:action="@{/empleados/save}" method="post" th:object="${emp}">
-
+        <input type="hidden" name="origin" th:value="${origin}" />
         <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger">
           Por favor corrige los errores en el formulario
         </div>
@@ -70,7 +70,7 @@
               <option value="">-- Seleccione --</option>
               <option th:each="d : ${departamentos}"
                       th:value="${d.deptno}"
-                      th:text="${d.dname}">
+                      th:text="${d.dname}" >
                 ACCOUNTING
               </option>
             </select>

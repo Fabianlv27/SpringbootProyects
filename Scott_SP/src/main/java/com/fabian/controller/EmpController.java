@@ -38,17 +38,26 @@ public class EmpController {
     }
 
     @PostMapping("/save")
-    public String guardar(Emp emp, BindingResult result, RedirectAttributes attributes, Model model) {
+    public String guardar(Emp emp, BindingResult result,
+                          @RequestParam(value = "origin",required = false) String origin,
+                          RedirectAttributes attributes, Model model) {
 
         if (result.hasErrors()) {
             // Si hay error, recargamos la lista de deptos y volvemos al form
             model.addAttribute("departamentos", deptRepo.findAll());
+            model.addAttribute("origin",origin);
             return "empleados/formEmpleado";
         }
 
         // Guardamos el empleado
         empService.guardar(emp);
         attributes.addFlashAttribute("msg", "Empleado guardado con éxito!");
+        if (origin !=null && !origin.isEmpty()){
+            if (emp.getDept() !=null){
+                return "redirect:/departamentos/empleados/"+emp.getDept().getDeptno();
+            }
+
+        }
         return "redirect:/empleados/index";
     }
 
@@ -60,10 +69,13 @@ public class EmpController {
     }
 
     @GetMapping("/edit/{id}")
-    public String editar(@PathVariable("id") Integer id, Model model) {
+    public String editar(@PathVariable("id") Integer id,
+                         @RequestParam(value = "origin",required = false) String origin,
+                         Model model) {
 
         Emp emp = empService.buscarPorId(id);
         model.addAttribute("emp", emp);
+        model.addAttribute("dname",origin);
         model.addAttribute("departamentos", deptRepo.findAll());
         return "empleados/formEmpleado";
     }

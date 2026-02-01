@@ -3,6 +3,7 @@ package com.fabian.service;
 import java.util.List;
 
 
+import com.fabian.model.Emp;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 
@@ -14,7 +15,7 @@ public interface IDeptsService {
 	void eliminar(Integer idDept);
 	List<Dept> buscarTodas();
 	Dept buscarPorId(Integer idDept);
-	List<Dept> buscarDestacadas();
+	Page<Emp> buscarEmpleados(Integer idDept,Pageable page);
 	Page<Dept> buscarTodas(Pageable page);
 	List<Dept> buscarByExample(Example<Dept> example);
 }

@@ -1,5 +1,8 @@
 package com.fabian.repository;
 import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +21,7 @@ public interface EmpRepository extends JpaRepository<Emp, Integer> {
 
     // 3. Buscar todos los empleados de un departamento específico usando la relación
     // Spring Data interpreta el guion bajo "_" para navegar en la propiedad 'dept' hacia 'deptno'
-    List<Emp> findByDept_Deptno(Integer deptno);
+    Page<Emp> findByDept_Deptno(Integer deptno, Pageable page);
 
     /**
      * Ejemplo de @Query personalizada (JPQL)

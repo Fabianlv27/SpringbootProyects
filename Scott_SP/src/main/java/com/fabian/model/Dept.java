@@ -10,16 +10,16 @@ public class Dept {
     @Id
     private Integer deptno;
 
-    private String dname; // El nombre exacto es importante
+    private String dname;
     private String loc;
 
     @OneToMany(mappedBy = "dept", fetch = FetchType.LAZY)
     private List<Emp> empleados;
 
-    // --- CONSTRUCTOR VACÍO (Requerido por JPA) ---
+
     public Dept() { }
 
-    // --- GETTERS Y SETTERS (Cruciales para Thymeleaf) ---
+
 
     public Integer getDeptno() {
         return deptno;
@@ -29,7 +29,6 @@ public class Dept {
         this.deptno = deptno;
     }
 
-    // OJO AQUÍ: Thymeleaf busca getDname() cuando escribes .dname
     public String getDname() {
         return dname;
     }
