@@ -18,7 +18,7 @@ public class WebSecurityConfig {
     @Bean
     public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails admin = User.withUsername("admin")
-                .password(passwordEncoder.encode("12345")) // <--- Aquí ciframos "12345"
+                .password(passwordEncoder.encode("12345"))
                 .roles("ADMIN")
                 .build();
 
@@ -29,17 +29,13 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(authorize -> authorize
-                        // Recursos estáticos públicos
                         .requestMatchers("/bootstrap/**", "/images/**", "/tinymce/**", "/logos/**").permitAll()
 
-                        // Login y Home públicos (para que vean la portada, pero no los datos)
                         .requestMatchers("/", "/login", "/logout").permitAll()
 
-                        // olo autenticados pueden ver Empleados y Departamentos
                         .requestMatchers("/empleados/**").authenticated()
                         .requestMatchers("/departamentos/**").authenticated()
 
-                        // Cualquier otra cosa requiere login
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

@@ -19,7 +19,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping("/departamentos")
 public class DeptController {
-    //Conectamos la interfaz para utilizar los metodos de depts
     @Autowired
     private IDeptsService deptsService;
 

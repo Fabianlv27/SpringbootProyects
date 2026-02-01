@@ -20,7 +20,6 @@ public class EmpServiceJpa implements IEmpService {
     @Autowired
     private DeptRepository deptRepo;
 
-    // Ejemplo de uso
     public List<Emp> buscarGerentes() {
         return empRepo.findByJob("MANAGER");
     }

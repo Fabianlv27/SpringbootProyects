@@ -10,7 +10,7 @@ public class Emp {
 
     @Id
     @Column(name = "EMPNO")
-    private Integer empno; // Sugerencia: Usa Integer en lugar de int para permitir nulos si fuera auto-incremental (aunque aquí es manual)
+    private Integer empno;
 
     private String ename;
     private String job;
@@ -21,20 +21,13 @@ public class Emp {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date hiredate;
 
-    // --- AQUÍ ESTÁ LA CORRECCIÓN ---
-    // Solo dejamos el objeto Dept.
-    // BORRA LA LÍNEA: private int deptno;
 
     @ManyToOne
     @JoinColumn(name = "DEPTNO")
     private Dept dept;
 
-    // --- CONSTRUCTORES ---
     public Emp() {}
 
-    // --- GETTERS Y SETTERS ---
-
-    // Getter y Setter para DEPT (Vitales)
     public Dept getDept() {
         return dept;
     }
@@ -43,7 +36,6 @@ public class Emp {
         this.dept = dept;
     }
 
-    // Getters y Setters del resto...
     public Integer getEmpno() { return empno; }
     public void setEmpno(Integer empno) { this.empno = empno; }
 

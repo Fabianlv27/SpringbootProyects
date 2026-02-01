@@ -11,7 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.fabian.model.Emp;
 import com.fabian.service.IEmpService;
-import com.fabian.repository.DeptRepository; // O su Service correspondiente
+import com.fabian.repository.DeptRepository;
 
 @Controller
 @RequestMapping("/empleados")
@@ -21,7 +21,7 @@ public class EmpController {
     private IEmpService empService;
 
     @Autowired
-    private DeptRepository deptRepo; // Para llenar el select de departamentos
+    private DeptRepository deptRepo;
 
     @GetMapping("/index")
     public String mostrarIndex(Model model, Pageable page) {
@@ -32,7 +32,6 @@ public class EmpController {
 
     @GetMapping("/create")
     public String crear(Emp emp, Model model) {
-        // Pasamos la lista de departamentos para el formulario
         model.addAttribute("departamentos", deptRepo.findAll());
         return "empleados/formEmpleado";
     }
@@ -43,13 +42,11 @@ public class EmpController {
                           RedirectAttributes attributes, Model model) {
 
         if (result.hasErrors()) {
-            // Si hay error, recargamos la lista de deptos y volvemos al form
             model.addAttribute("departamentos", deptRepo.findAll());
             model.addAttribute("origin",origin);
             return "empleados/formEmpleado";
         }
 
-        // Guardamos el empleado
         empService.guardar(emp);
         attributes.addFlashAttribute("msg", "Empleado guardado con éxito!");
         if (origin !=null && !origin.isEmpty()){
@@ -75,7 +72,7 @@ public class EmpController {
 
         Emp emp = empService.buscarPorId(id);
         model.addAttribute("emp", emp);
-        model.addAttribute("dname",origin);
+        model.addAttribute("origin",origin);
         model.addAttribute("departamentos", deptRepo.findAll());
         return "empleados/formEmpleado";
     }

@@ -1,6 +1,7 @@
 package com.fabian.repository;
 import java.util.List;
 
+import com.fabian.dto.EstadisticaDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,23 +14,28 @@ import com.fabian.model.Emp;
 
 public interface EmpRepository extends JpaRepository<Emp, Integer> {
 
-    // 1. Buscar empleados por su puesto de trabajo (JOB)
     List<Emp> findByJob(String job);
 
-    // 2. Buscar empleados que ganen más de cierto salario
     List<Emp> findBySalGreaterThan(Float salario);
 
-    // 3. Buscar todos los empleados de un departamento específico usando la relación
-    // Spring Data interpreta el guion bajo "_" para navegar en la propiedad 'dept' hacia 'deptno'
     Page<Emp> findByDept_Deptno(Integer deptno, Pageable page);
 
-    /**
-     * Ejemplo de @Query personalizada (JPQL)
-     * Aumentar el salario de un empleado en un porcentaje específico.
-     * Requiere @Modifying y @Transactional porque es un UPDATE.
-     */
     @Modifying
     @Transactional
     @Query("UPDATE Emp e SET e.sal = e.sal * :porcentaje WHERE e.empno = :idEmpleado")
     void aumentarSalario(@Param("idEmpleado") Integer idEmpleado, @Param("porcentaje") Double porcentaje);
+
+    @Query("SELECT e.ename as etiqueta, e.sal as valor FROM Emp e " +
+            "WHERE (:idDept IS NULL OR e.dept.deptno = :idDept) " +
+            "ORDER BY e.sal DESC")
+    List<EstadisticaDTO> obtenerSalarios(@Param("idDept") Integer idDept, Pageable pageable);
+
+    @Query("SELECT d.dname as etiqueta, COUNT(e) as valor FROM Emp e JOIN e.dept d " +
+            "GROUP BY d.dname")
+    List<EstadisticaDTO> obtenerEmpleadosPorDepartamento();
+
+    @Query(value = "SELECT DATE_FORMAT(hiredate, '%Y-%m') as etiqueta, COUNT(*) as valor FROM emp " +
+            "GROUP BY DATE_FORMAT(hiredate, '%Y-%m') " +
+            "ORDER BY etiqueta ASC", nativeQuery = true)
+        List<EstadisticaDTO> obtenerContratacionesPorMes();
 }
