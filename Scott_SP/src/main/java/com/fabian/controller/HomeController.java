@@ -5,19 +5,24 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import com.fabian.service.IDepasService;
+import com.fabian.service.IDeptsService;
 
 @Controller
 public class HomeController {
 	
 	@Autowired
-	private IDepasService ServiceDepa;
+	private IDeptsService ServiceDepa;
 	
 	@GetMapping("/")
 	public String mostarDepas(Model model) {
 		model.addAttribute("depas",ServiceDepa.buscarTodas());
 		
 		return "home";
+	}
+
+	@GetMapping("/login")
+	public String mostrarLogin() {
+		return "formLogin";
 	}
 	
 	

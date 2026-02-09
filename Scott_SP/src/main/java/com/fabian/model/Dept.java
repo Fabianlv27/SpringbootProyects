@@ -1,28 +1,31 @@
 package com.fabian.model;
 
+import jakarta.persistence.*;
+import java.util.List;
+
+@Entity
+@Table(name = "dept")
 public class Dept {
 
-    private int deptno;
+    @Id
+    private Integer deptno;
+
     private String dname;
     private String loc;
 
-
-    public Dept() {
-    }
-
- 
-    public Dept(int deptno, String dname, String loc) {
-        this.deptno = deptno;
-        this.dname = dname;
-        this.loc = loc;
-    }
+    @OneToMany(mappedBy = "dept", fetch = FetchType.LAZY)
+    private List<Emp> empleados;
 
 
-    public int getDeptno() {
+    public Dept() { }
+
+
+
+    public Integer getDeptno() {
         return deptno;
     }
 
-    public void setDeptno(int deptno) {
+    public void setDeptno(Integer deptno) {
         this.deptno = deptno;
     }
 
@@ -40,5 +43,13 @@ public class Dept {
 
     public void setLoc(String loc) {
         this.loc = loc;
+    }
+
+    public List<Emp> getEmpleados() {
+        return empleados;
+    }
+
+    public void setEmpleados(List<Emp> empleados) {
+        this.empleados = empleados;
     }
 }

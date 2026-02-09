@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Panel de Estadísticas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding-top: 3.5rem; background-color: #f8f9fa; }
+        .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<header th:replace="~{fragments/menu :: barra-navegacion}"></header>
+
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-chart-line"></i> Dashboard de Recursos Humanos</h2>
+
+    <div class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Filtrar Salarios por Departamento:</label>
+                <select id="filtroDept" class="form-select" onchange="cargarGraficoBarras()">
+                    <option value="">-- Todos --</option>
+                    <option th:each="d : ${departamentos}" th:value="${d.deptno}" th:text="${d.dname}"></option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Límite de empleados (Top):</label>
+                <input type="number" id="filtroLimite" class="form-control" value="10" min="1" max="50" onchange="cargarGraficoBarras()">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" onclick="cargarTodos()">Actualizar Todo</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="chart-container">
+                <h5>Top Salarios por Empleado</h5>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="chart-container">
+                <h5>Empleados por Departamento</h5>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="chart-container">
+                <h5>Incorporaciones por Mes/Año</h5>
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variables globales para las instancias de los gráficos
+    let chartBarras = null;
+    let chartTorta = null;
+    let chartLinea = null;
+
+    // Al cargar la página
+    document.addEventListener("DOMContentLoaded", function() {
+        cargarTodos();
+    });
+
+    function cargarTodos() {
+        cargarGraficoBarras();
+        cargarGraficoTorta();
+        cargarGraficoLinea();
+    }
+
+    // 1. GRÁFICO DE BARRAS (Con Filtros)
+    async function cargarGraficoBarras() {
+        const deptId = document.getElementById('filtroDept').value;
+        const limite = document.getElementById('filtroLimite').value;
+
+        // Llamada al Backend
+        let url = `/estadisticas/api/salarios?limite=${limite}`;
+        if(deptId) url += `&deptId=${deptId}`;
+
+        const response = await fetch(url);
+        const datos = await response.json();
+
+        const ctx = document.getElementById('barChart').getContext('2d');
+
+        // Destruir gráfico anterior si existe para redibujar
+        if(chartBarras) chartBarras.destroy();
+
+        chartBarras = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: datos.map(d => d.etiqueta),
+                datasets: [{
+                    label: 'Salario ($)',
+                    data: datos.map(d => d.valor),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // 2. GRÁFICO DE TORTA
+    async function cargarGraficoTorta() {
+        const response = await fetch('/estadisticas/api/composicion');
+        const datos = await response.json();
+
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        if(chartTorta) chartTorta.destroy();
+
+        chartTorta = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: datos.map(d => d.etiqueta),
+                datasets: [{
+                    data: datos.map(d => d.valor),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                    ]
+                }]
+            }
+        });
+    }
+
+    // 3. GRÁFICO DE LÍNEA
+    async function cargarGraficoLinea() {
+        const response = await fetch('/estadisticas/api/historico');
+        const datos = await response.json();
+
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        if(chartLinea) chartLinea.destroy();
+
+        chartLinea = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: datos.map(d => d.etiqueta),
+                datasets: [{
+                    label: 'Nuevas Contrataciones',
+                    data: datos.map(d => d.valor),
+                    fill: true,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            }
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
