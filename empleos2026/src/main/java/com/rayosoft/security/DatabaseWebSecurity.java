@@ -33,7 +33,7 @@ public class DatabaseWebSecurity {
 		http.authorizeHttpRequests(authorize -> authorize
 
 			// Los recursos estáticos no requieren autenticación
-			.requestMatchers("/bootstrap/**", "/images/**", "/tinymce/**", "/logos/**").permitAll()
+			.requestMatchers("/bootstrap/**", "/images/**", "/tinymce/**", "/logos/**","/css/**", "/js/**").permitAll()
 	
 			// Las vistas públicas no requieren autenticación
 			.requestMatchers("/", "/login", "/signup", "/search", "/bcrypt/**", "/about", "/vacantes/view/**").permitAll()
