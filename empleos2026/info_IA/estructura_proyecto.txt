@@ -1,0 +1,299 @@
+empleos2026/
+├── .gitattributes
+├── .gitignore
+├── empleos2026
+│   ├── .gitattributes
+│   ├── .gitignore
+│   ├── mvnw
+│   ├── mvnw.cmd
+│   ├── pom.xml
+│   └── src
+│       ├── main
+│       │   ├── java
+│       │   │   └── com
+│       │   │       └── rayosoft
+│       │   │           ├── Empleos2026Application.java
+│       │   │           ├── config
+│       │   │           │   └── WebConfig.java
+│       │   │           ├── controller
+│       │   │           │   ├── CategoriasController.java
+│       │   │           │   ├── HomeController.java
+│       │   │           │   ├── SolicitudesController.java
+│       │   │           │   ├── UsuariosController.java
+│       │   │           │   └── VacantesController.java
+│       │   │           ├── model
+│       │   │           │   ├── Categoria.java
+│       │   │           │   ├── Perfil.java
+│       │   │           │   ├── Solicitud.java
+│       │   │           │   ├── Usuario.java
+│       │   │           │   └── Vacante.java
+│       │   │           ├── repository
+│       │   │           │   ├── CategoriasRepository.java
+│       │   │           │   ├── PerfilesRepository.java
+│       │   │           │   ├── SolicitudesRepository.java
+│       │   │           │   ├── UsuariosRepository.java
+│       │   │           │   └── VacantesRepository.java
+│       │   │           ├── security
+│       │   │           │   └── DatabaseWebSecurity.java
+│       │   │           ├── service
+│       │   │           │   ├── ICategoriasService.java
+│       │   │           │   ├── ISolicitudesService.java
+│       │   │           │   ├── IUsuariosService.java
+│       │   │           │   ├── IVacantesService.java
+│       │   │           │   └── db
+│       │   │           │       ├── CategoriasServiceJpa.java
+│       │   │           │       ├── SolicitudesServiceJpa.java
+│       │   │           │       ├── UsuariosServiceJpa.java
+│       │   │           │       └── VacantesServiceJpa.java
+│       │   │           └── util
+│       │   │               └── Utileria.java
+│       │   └── resources
+│       │       ├── application.properties
+│       │       ├── static
+│       │       │   ├── bootstrap
+│       │       │   │   ├── css
+│       │       │   │   │   ├── bootstrap-grid.css
+│       │       │   │   │   ├── bootstrap-reboot.css
+│       │       │   │   │   ├── bootstrap.css
+│       │       │   │   │   ├── jumbotron.css
+│       │       │   │   │   └── sticky-footer-navbar.css
+│       │       │   │   └── js
+│       │       │   │       ├── bootstrap.bundle.js
+│       │       │   │       └── bootstrap.js
+│       │       │   ├── images
+│       │       │   └── tinymce
+│       │       │       ├── langs
+│       │       │       │   └── readme.md
+│       │       │       ├── license.txt
+│       │       │       ├── plugins
+│       │       │       │   ├── advlist
+│       │       │       │   ├── anchor
+│       │       │       │   ├── autolink
+│       │       │       │   ├── autoresize
+│       │       │       │   ├── autosave
+│       │       │       │   ├── bbcode
+│       │       │       │   ├── charmap
+│       │       │       │   ├── code
+│       │       │       │   ├── codesample
+│       │       │       │   │   └── css
+│       │       │       │   │       └── prism.css
+│       │       │       │   ├── colorpicker
+│       │       │       │   ├── contextmenu
+│       │       │       │   ├── directionality
+│       │       │       │   ├── emoticons
+│       │       │       │   │   └── img
+│       │       │       │   ├── fullpage
+│       │       │       │   ├── fullscreen
+│       │       │       │   ├── help
+│       │       │       │   │   └── img
+│       │       │       │   ├── hr
+│       │       │       │   ├── image
+│       │       │       │   ├── imagetools
+│       │       │       │   ├── importcss
+│       │       │       │   ├── insertdatetime
+│       │       │       │   ├── legacyoutput
+│       │       │       │   ├── link
+│       │       │       │   ├── lists
+│       │       │       │   ├── media
+│       │       │       │   ├── nonbreaking
+│       │       │       │   ├── noneditable
+│       │       │       │   ├── pagebreak
+│       │       │       │   ├── paste
+│       │       │       │   ├── preview
+│       │       │       │   ├── print
+│       │       │       │   ├── save
+│       │       │       │   ├── searchreplace
+│       │       │       │   ├── spellchecker
+│       │       │       │   ├── tabfocus
+│       │       │       │   ├── table
+│       │       │       │   ├── template
+│       │       │       │   ├── textcolor
+│       │       │       │   ├── textpattern
+│       │       │       │   ├── toc
+│       │       │       │   ├── visualblocks
+│       │       │       │   │   └── css
+│       │       │       │   │       └── visualblocks.css
+│       │       │       │   ├── visualchars
+│       │       │       │   └── wordcount
+│       │       │       ├── skins
+│       │       │       │   └── lightgray
+│       │       │       │       ├── fonts
+│       │       │       │       │   ├── tinymce-small.svg
+│       │       │       │       │   └── tinymce.svg
+│       │       │       │       └── img
+│       │       │       └── themes
+│       │       │           ├── inlite
+│       │       │           └── modern
+│       │       └── templates
+│       │           ├── acerca.html
+│       │           ├── categorias
+│       │           │   ├── formCategoria.html
+│       │           │   └── listCategorias.html
+│       │           ├── detalle.html
+│       │           ├── formLogin.html
+│       │           ├── formRegistro.html
+│       │           ├── fragments
+│       │           │   ├── footer.html
+│       │           │   └── menu.html
+│       │           ├── home.html
+│       │           ├── solicitudes
+│       │           │   ├── formSolicitud.html
+│       │           │   └── listSolicitudes.html
+│       │           ├── usuarios
+│       │           │   └── listUsuarios.html
+│       │           └── vacantes
+│       │               ├── formVacante.html
+│       │               └── listVacantes.html
+│       └── test
+│           └── java
+│               └── com
+│                   └── rayosoft
+│                       └── Empleos2026ApplicationTests.java
+├── info_IA
+│   └── estructura_proyecto.txt
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── rayosoft
+│   │   │           ├── Empleos2026Application.java
+│   │   │           ├── config
+│   │   │           │   └── WebConfig.java
+│   │   │           ├── controller
+│   │   │           │   ├── CategoriasController.java
+│   │   │           │   ├── HomeController.java
+│   │   │           │   ├── SolicitudesController.java
+│   │   │           │   ├── UsuariosController.java
+│   │   │           │   └── VacantesController.java
+│   │   │           ├── model
+│   │   │           │   ├── Categoria.java
+│   │   │           │   ├── Perfil.java
+│   │   │           │   ├── Solicitud.java
+│   │   │           │   ├── Usuario.java
+│   │   │           │   └── Vacante.java
+│   │   │           ├── repository
+│   │   │           │   ├── CategoriasRepository.java
+│   │   │           │   ├── PerfilesRepository.java
+│   │   │           │   ├── SolicitudesRepository.java
+│   │   │           │   ├── UsuariosRepository.java
+│   │   │           │   └── VacantesRepository.java
+│   │   │           ├── security
+│   │   │           │   └── DatabaseWebSecurity.java
+│   │   │           ├── service
+│   │   │           │   ├── ICategoriasService.java
+│   │   │           │   ├── ISolicitudesService.java
+│   │   │           │   ├── IUsuariosService.java
+│   │   │           │   ├── IVacantesService.java
+│   │   │           │   └── db
+│   │   │           │       ├── CategoriasServiceJpa.java
+│   │   │           │       ├── SolicitudesServiceJpa.java
+│   │   │           │       ├── UsuariosServiceJpa.java
+│   │   │           │       └── VacantesServiceJpa.java
+│   │   │           └── util
+│   │   │               └── Utileria.java
+│   │   └── resources
+│   │       ├── application.properties
+│   │       ├── static
+│   │       │   ├── bootstrap
+│   │       │   │   ├── css
+│   │       │   │   │   ├── bootstrap-grid.css
+│   │       │   │   │   ├── bootstrap-reboot.css
+│   │       │   │   │   ├── bootstrap.css
+│   │       │   │   │   ├── jumbotron.css
+│   │       │   │   │   └── sticky-footer-navbar.css
+│   │       │   │   └── js
+│   │       │   │       ├── bootstrap.bundle.js
+│   │       │   │       └── bootstrap.js
+│   │       │   ├── images
+│   │       │   └── tinymce
+│   │       │       ├── langs
+│   │       │       │   └── readme.md
+│   │       │       ├── license.txt
+│   │       │       ├── plugins
+│   │       │       │   ├── advlist
+│   │       │       │   ├── anchor
+│   │       │       │   ├── autolink
+│   │       │       │   ├── autoresize
+│   │       │       │   ├── autosave
+│   │       │       │   ├── bbcode
+│   │       │       │   ├── charmap
+│   │       │       │   ├── code
+│   │       │       │   ├── codesample
+│   │       │       │   │   └── css
+│   │       │       │   │       └── prism.css
+│   │       │       │   ├── colorpicker
+│   │       │       │   ├── contextmenu
+│   │       │       │   ├── directionality
+│   │       │       │   ├── emoticons
+│   │       │       │   │   └── img
+│   │       │       │   ├── fullpage
+│   │       │       │   ├── fullscreen
+│   │       │       │   ├── help
+│   │       │       │   │   └── img
+│   │       │       │   ├── hr
+│   │       │       │   ├── image
+│   │       │       │   ├── imagetools
+│   │       │       │   ├── importcss
+│   │       │       │   ├── insertdatetime
+│   │       │       │   ├── legacyoutput
+│   │       │       │   ├── link
+│   │       │       │   ├── lists
+│   │       │       │   ├── media
+│   │       │       │   ├── nonbreaking
+│   │       │       │   ├── noneditable
+│   │       │       │   ├── pagebreak
+│   │       │       │   ├── paste
+│   │       │       │   ├── preview
+│   │       │       │   ├── print
+│   │       │       │   ├── save
+│   │       │       │   ├── searchreplace
+│   │       │       │   ├── spellchecker
+│   │       │       │   ├── tabfocus
+│   │       │       │   ├── table
+│   │       │       │   ├── template
+│   │       │       │   ├── textcolor
+│   │       │       │   ├── textpattern
+│   │       │       │   ├── toc
+│   │       │       │   ├── visualblocks
+│   │       │       │   │   └── css
+│   │       │       │   │       └── visualblocks.css
+│   │       │       │   ├── visualchars
+│   │       │       │   └── wordcount
+│   │       │       ├── skins
+│   │       │       │   └── lightgray
+│   │       │       │       ├── fonts
+│   │       │       │       │   ├── tinymce-small.svg
+│   │       │       │       │   └── tinymce.svg
+│   │       │       │       └── img
+│   │       │       └── themes
+│   │       │           ├── inlite
+│   │       │           └── modern
+│   │       └── templates
+│   │           ├── acerca.html
+│   │           ├── categorias
+│   │           │   ├── formCategoria.html
+│   │           │   └── listCategorias.html
+│   │           ├── detalle.html
+│   │           ├── formLogin.html
+│   │           ├── formRegistro.html
+│   │           ├── fragments
+│   │           │   ├── footer.html
+│   │           │   └── menu.html
+│   │           ├── home.html
+│   │           ├── solicitudes
+│   │           │   ├── formSolicitud.html
+│   │           │   └── listSolicitudes.html
+│   │           ├── usuarios
+│   │           │   └── listUsuarios.html
+│   │           └── vacantes
+│   │               ├── formVacante.html
+│   │               └── listVacantes.html
+│   └── test
+│       └── java
+│           └── com
+│               └── rayosoft
+│                   └── Empleos2026ApplicationTests.java
+└── tree.txt

@@ -1,0 +1,19 @@
+package com.fabiansoft.model;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "lists")
+public class Lists {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    // TODO: Agrega aqui los atributos exactos de tu tabla 'lists'
+    // private String nombre;
+    // private String descripcion;
+
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
+}

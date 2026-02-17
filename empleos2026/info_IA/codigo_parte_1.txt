@@ -1,0 +1,1739 @@
+CONTEXTO DE CODIGO DEL PROYECTO
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\config\WebConfig.java
+========================================
+package com.rayosoft.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+	
+	@Value("${empleosapp.ruta.imagenes}")
+	private String rutaImagenes;
+	
+	@Value("${empleosapp.ruta.cv}")
+	private String rutaCv;
+	
+	@Override
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		
+		// Configuración de los recursos estáticos (imagenes de las vacantes) 
+		//registry.addResourceHandler("/logos/**").addResourceLocations("file:c:/empleos/img-vacantes/"); // Windows
+		//registry.addResourceHandler("/logos/**").addResourceLocations("file:/empleos/img-vacantes/"); // Linux
+		registry.addResourceHandler("/logos/**").addResourceLocations("file:"+rutaImagenes); 
+		
+		// Configuración de los recursos estáticos (archivos de los CV)
+		//registry.addResourceHandler("/cv/**").addResourceLocations("file:c:/empleos/files-cv/"); // Windows
+		//registry.addResourceHandler("/cv/**").addResourceLocations("file:/empleos/files-cv/");
+		registry.addResourceHandler("/cv/**").addResourceLocations("file:"+rutaCv); // Linux
+		
+	}
+	
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\controller\CategoriasController.java
+========================================
+package com.rayosoft.controller;
+
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.rayosoft.model.Categoria;
+import com.rayosoft.service.ICategoriasService;
+
+@Controller
+@RequestMapping("/categorias")
+public class CategoriasController {
+	
+	// Inyectamos una instancia desde nuestro ApplicationContext   
+    @Autowired
+   	private ICategoriasService serviceCategorias;
+	  
+    /**
+	 * Metodo que muestra la lista de categorias sin paginacion
+	 * @param model
+	 * @param page
+	 * @return
+	 */
+    @GetMapping("/index")
+	public String mostrarIndex(Model model) {
+    	List<Categoria> lista = serviceCategorias.buscarTodas();
+    	model.addAttribute("categorias", lista);
+		return "categorias/listCategorias";
+	}
+    
+	@GetMapping("/indexPaginate")
+	public String mostrarIndexPaginado(Model model, Pageable page) {
+		Page<Categoria> lista = serviceCategorias.buscarTodas(page);
+		model.addAttribute("categorias", lista);
+		return "categorias/listCategorias";
+	}
+    
+
+	@GetMapping("/create")
+	public String crear(Categoria categoria) {		
+		return "categorias/formCategoria";
+	}
+	
+
+	@PostMapping("/save")
+	public String guardar(Categoria categoria, BindingResult result, Model model, RedirectAttributes attributes) {	
+		
+		if (result.hasErrors()){
+			
+			System.out.println("Existieron errores");
+			return "categorias/formCategoria";
+		}	
+				
+		// Guadamos el objeto categoria en la bd
+		serviceCategorias.guardar(categoria);
+		attributes.addFlashAttribute("msg", "Los datos de la categoría fueron guardados!");
+			
+		//return "redirect:/categorias/index";
+		return "redirect:/categorias/indexPaginate";		
+	}
+	
+	/**
+	 * Método para renderizar el formulario para editar una Categoría
+	 * @param idCategoria
+	 * @param model
+	 * @return
+	 */
+	@GetMapping("/edit/{id}")
+	public String editar(@PathVariable("id") int idCategoria, Model model) {		
+		Categoria categoria = serviceCategorias.buscarPorId(idCategoria);			
+		model.addAttribute("categoria", categoria);
+		return "categorias/formCategoria";
+	}
+	
+	/**
+	 * Método para eliminar una Categoría de la base de datos
+	 * @param idCategoria
+	 * @param attributes
+	 * @return
+	 */
+	@GetMapping("/delete/{id}")
+	public String eliminar(@PathVariable("id") int idCategoria, RedirectAttributes attributes) {
+		
+		// Eliminamos la categoria.
+		serviceCategorias.eliminar(idCategoria);
+			
+		attributes.addFlashAttribute("msg", "La categoría fue eliminada!.");
+		//return "redirect:/categorias/index";
+		return "redirect:/categorias/indexPaginate";
+	}
+		
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\controller\HomeController.java
+========================================
+package com.rayosoft.controller;
+
+import java.util.Date;
+import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.rayosoft.model.Perfil;
+import com.rayosoft.model.Usuario;
+import com.rayosoft.model.Vacante;
+import com.rayosoft.service.ICategoriasService;
+import com.rayosoft.service.IUsuariosService;
+import com.rayosoft.service.IVacantesService;
+
+@Controller
+public class HomeController {
+	
+	@Autowired
+	private ICategoriasService serviceCategorias;
+	
+	// Inyectamos una instancia desde nuestro ApplicationContext
+    @Autowired
+	private IVacantesService serviceVacantes;
+    
+    @Autowired
+   	private IUsuariosService serviceUsuarios;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+  
+	@GetMapping("/")
+	public String mostrarHome() {return "home";}
+	
+	@GetMapping("/index")
+	public String mostrarIndex(Authentication authentication, HttpSession session) {		
+		
+		// Como el usuario ya ingreso, ya podemos agregar a la session el objeto usuario.
+		String username = authentication.getName();		
+		
+		for(GrantedAuthority rol: authentication.getAuthorities()) {
+			System.out.println("ROL: " + rol.getAuthority());
+		}
+		
+		if (session.getAttribute("usuario") == null){
+			Usuario usuario = serviceUsuarios.buscarPorUsername(username);
+			usuario.setPassword(null);
+			//System.out.println("Usuario: " + usuario);
+			session.setAttribute("usuario", usuario);
+		}
+		
+		return "redirect:/";
+	}
+	
+	@GetMapping("/signup")
+	public String registrarse(Usuario usuario) {
+		return "formRegistro";
+	}
+	@PostMapping("/signup")
+	public String guardarRegistro(Usuario usuario, RedirectAttributes attributes) {
+		// Recuperamos el password en texto plano
+		String pwdPlano = usuario.getPassword();
+		// Encriptamos el pwd BCryptPasswordEncoder
+		String pwdEncriptado = passwordEncoder.encode(pwdPlano); 
+		// Hacemos un set al atributo password (ya viene encriptado)
+		usuario.setPassword(pwdEncriptado);	
+		usuario.setEstatus(1); // Activado por defecto
+		usuario.setFechaRegistro(new Date()); // Fecha de Registro, la fecha actual del servidor
+		
+		// Creamos el Perfil que le asignaremos al usuario nuevo
+		Perfil perfil = new Perfil();
+		perfil.setId(3); // Perfil USUARIO
+		usuario.agregar(perfil);
+		
+		/**
+		 * Guardamos el usuario en la base de datos. El Perfil se guarda automaticamente
+		 */
+		serviceUsuarios.guardar(usuario);
+				
+		attributes.addFlashAttribute("msg", "Has sido registrado. ¡Ahora puedes ingresar al sistema!");
+		
+		return "redirect:/login";
+	}
+		
+	@GetMapping("/search")
+	public String buscar(@ModelAttribute("search") Vacante vacante, Model model) {
+		
+		/**
+		 * La busqueda de vacantes desde el formulario debera de ser únicamente en Vacantes con estatus 
+		 * "Aprobada". Entonces forzamos ese filtrado.
+		 */
+		vacante.setEstatus("Aprobada");
+		
+		// Personalizamos el tipo de busqueda...
+		ExampleMatcher matcher  = ExampleMatcher.matching().
+			// and descripcion like '%?%'
+			withMatcher("descripcion", ExampleMatcher.GenericPropertyMatchers.contains());
+		
+		Example<Vacante> example = Example.of(vacante, matcher);
+		List<Vacante> lista = serviceVacantes.buscarByExample(example);
+		model.addAttribute("vacantes", lista);
+		return "home";
+	}
+	
+	@GetMapping("/about")
+	public String mostrarAcerca() {			
+		return "acerca";
+	}
+	
+	@GetMapping("/login")
+	public String mostrarLogin() {
+		return "formLogin";
+	}
+	@GetMapping("/logout")
+	public String logout(HttpServletRequest request) {
+		SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+		logoutHandler.logout(request, null, null);
+		return "redirect:/";
+	}
+	
+	@GetMapping("/bcrypt/{texto}")
+    @ResponseBody
+   	public String encriptar(@PathVariable("texto") String texto) {    	
+   		return texto + " Encriptado en Bcrypt: " + passwordEncoder.encode(texto);
+   	}
+	 /**
+	 * InitBinder para Strings si los detecta vacios en el Data Binding los settea a NULL
+	 * @param binder
+	 */
+	@InitBinder
+	public void initBinder(WebDataBinder binder) {
+	    binder.registerCustomEditor(String.class, new StringTrimmerEditor(true));
+	}
+    
+	/**
+	 * Metodo que agrega al modelo datos genéricos para todo el controlador
+	 * @param model
+	 */
+	@ModelAttribute
+	public void setGenericos(Model model){
+		Vacante vacanteSearch = new Vacante();
+		vacanteSearch.reset();
+		model.addAttribute("search", vacanteSearch);
+		model.addAttribute("vacantes", serviceVacantes.buscarDestacadas());	
+		model.addAttribute("categorias", serviceCategorias.buscarTodas());	
+	}
+		
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\controller\SolicitudesController.java
+========================================
+package com.rayosoft.controller;
+
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.rayosoft.model.Solicitud;
+import com.rayosoft.model.Usuario;
+import com.rayosoft.model.Vacante;
+import com.rayosoft.service.ISolicitudesService;
+import com.rayosoft.service.IUsuariosService;
+import com.rayosoft.service.IVacantesService;
+import com.rayosoft.util.Utileria;
+
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping("/solicitudes")
+public class SolicitudesController {
+	
+	@Value("${empleosapp.ruta.cv}")
+	private String ruta;
+	
+	// Inyectamos una instancia desde nuestro ApplicationContext
+    @Autowired
+	private IVacantesService serviceVacantes;
+	
+    @Autowired
+   	private IUsuariosService serviceUsuario;
+    
+    // Inyectamos una instancia desde nuestro ApplicationContext
+    @Autowired
+	private ISolicitudesService solicitudesService;
+    
+    /**
+	 * Metodo que muestra la lista de solicitudes con paginacion
+	 * @param model
+	 * @param page
+	 * @return
+	 */
+	@GetMapping("/indexPaginate")
+	public String mostrarIndexPaginado(Model model, @PageableDefault(sort= {"id"},direction=Sort.Direction.DESC, size=20) Pageable page) {
+		Page<Solicitud> lista = solicitudesService.buscarTodas(page);
+		model.addAttribute("solicitudes", lista);
+		return "solicitudes/listSolicitudes";
+	}
+	
+	/**
+	 * Metodo que muestra la lista de solicitudes sin paginacion
+	 * @param model
+	 * @param page
+	 * @return
+	 */
+    @GetMapping("/index")
+	public String mostrarIndex(Model model) {
+    	List<Solicitud> lista = solicitudesService.buscarTodas();
+    	model.addAttribute("solicitudes", lista);
+		return "solicitudes/listSolicitudes";
+	}
+    
+	/**
+	 * Método para renderizar el formulario para aplicar para una Vacante
+	 * @param solicitud
+	 * @param idVacante
+	 * @param model
+	 * @return
+	 */
+	@GetMapping("/create/{idVacante}")
+	public String crear(Solicitud solicitud, @PathVariable Integer idVacante, Model model) {
+		// Traemos los detalles de la Vacante seleccionada para despues mostrarla en la vista
+		Vacante vacante = serviceVacantes.buscarPorId(idVacante);
+		System.out.println("idVacante: " + idVacante);
+		model.addAttribute("vacante", vacante);
+		return "solicitudes/formSolicitud";
+	}
+	
+	/**
+	 * Método que guarda la solicitud enviada por el usuario en la base de datos
+	 * @param solicitud
+	 * @param result
+	 * @param model
+	 * @param session
+	 * @param multiPart
+	 * @param attributes
+	 * @return
+	 */
+	@PostMapping("/save")
+	public String guardar(Solicitud solicitud, BindingResult result, Model model, HttpSession session,
+			@RequestParam("archivoCV") MultipartFile multiPart, RedirectAttributes attributes, Authentication authentication) {	
+		
+		// Recuperamos el username que inicio sesión
+		String username = authentication.getName();
+		
+		if (result.hasErrors()){
+			
+			System.out.println("Existieron errores");
+			return "solicitudes/formSolicitud";
+		}	
+		
+		if (!multiPart.isEmpty()) {
+			//String ruta = "/empleos/files-cv/"; // Linux/MAC
+			//String ruta = "c:/empleos/files-cv/"; // Windows
+			String nombreArchivo = Utileria.guardarArchivo(multiPart, ruta);
+			if (nombreArchivo!=null){ // El archivo (CV) si se subio				
+				solicitud.setArchivo(nombreArchivo); // Asignamos el nombre de la imagen
+			}	
+		}
+
+		// Buscamos el objeto Usuario en BD	
+		Usuario usuario = serviceUsuario.buscarPorUsername(username);				
+		solicitud.setUsuario(usuario); // Referenciamos la solicitud con el usuario
+		
+		// Guadamos el objeto solicitud en la bd
+		solicitudesService.guardar(solicitud);
+		attributes.addFlashAttribute("msg", "Gracias por enviar tu CV!");
+			
+		System.out.println("Solicitud:" + solicitud);
+		return "redirect:/";		
+	}
+	
+	/**
+	 * Método para eliminar una solicitud 
+	 * @param idSolicitud
+	 * @param attributes
+	 * @return
+	 */
+	@GetMapping("/delete/{id}")
+	public String eliminar(@PathVariable("id") int idSolicitud, RedirectAttributes attributes) {
+		
+		// Eliminamos la solicitud.
+		solicitudesService.eliminar(idSolicitud);
+			
+		attributes.addFlashAttribute("msg", "La solicitud fue eliminada!.");
+		//return "redirect:/solicitudes/index";
+		return "redirect:/solicitudes/indexPaginate";
+	}
+				
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\controller\UsuariosController.java
+========================================
+package com.rayosoft.controller;
+
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.rayosoft.model.Usuario;
+import com.rayosoft.service.IUsuariosService;
+
+@Controller
+@RequestMapping("/usuarios")
+public class UsuariosController {
+	
+	// Inyectamos una instancia desde nuestro ApplicationContext
+    @Autowired
+	private IUsuariosService serviceUsuarios;
+    
+     @GetMapping("/index")
+	public String mostrarIndex(Model model) {
+    	model.addAttribute("usuarios", serviceUsuarios.buscarRegistrados());
+		return "usuarios/listUsuarios";
+	}
+    
+    @GetMapping("/delete/{id}")
+	public String eliminar(@PathVariable("id") int idUsuario, RedirectAttributes attributes) {
+		    	
+		// Eliminamos el usuario
+    	serviceUsuarios.eliminar(idUsuario);
+			
+		attributes.addFlashAttribute("msg", "El usuario fue eliminado!.");
+		return "redirect:/usuarios/index";
+	}
+    
+    @GetMapping("/unlock/{id}")
+	public String activar(@PathVariable("id") int idUsuario, RedirectAttributes attributes) {		
+    	serviceUsuarios.activar(idUsuario);
+		attributes.addFlashAttribute("msg", "El usuario fue activado y ahora tiene acceso al sistema.");		
+		return "redirect:/usuarios/index";
+	}
+    
+	@GetMapping("/lock/{id}")
+	public String bloquear(@PathVariable("id") int idUsuario, RedirectAttributes attributes) {		
+		serviceUsuarios.bloquear(idUsuario);
+		attributes.addFlashAttribute("msg", "El usuario fue bloqueado y no tendra acceso al sistema.");		
+		return "redirect:/usuarios/index";
+	}
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\controller\VacantesController.java
+========================================
+package com.rayosoft.controller;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.rayosoft.model.Vacante;
+import com.rayosoft.service.ICategoriasService;
+import com.rayosoft.service.IVacantesService;
+import com.rayosoft.util.Utileria;
+
+@Controller
+@RequestMapping(value="/vacantes")
+public class VacantesController {
+	
+	@Value("${empleosapp.ruta.imagenes}")
+	private String ruta;
+	
+	// Inyectamos una instancia desde nuestro ApplicationContext
+    @Autowired
+	private IVacantesService serviceVacantes;
+    
+    @Autowired
+   	private ICategoriasService serviceCategorias;
+	  
+    @GetMapping("/index")
+	public String mostrarIndex(Model model) {
+    	List<Vacante> lista = serviceVacantes.buscarTodas();
+    	model.addAttribute("vacantes", lista);
+		return "vacantes/listVacantes";
+	}
+    
+    /**
+	 * Metodo que muestra la lista de vacantes con paginacion
+	 * @param model
+	 * @param page
+	 * @return
+	 */
+	@GetMapping("/indexPaginate")
+	public String mostrarIndexPaginado(Model model, Pageable page) {
+		Page<Vacante> lista = serviceVacantes.buscarTodas(page);
+		model.addAttribute("vacantes", lista);
+		return "vacantes/listVacantes";
+	}
+    
+	/**
+	 * Método que muestra el formulario para crear una nueva Vacante
+	 * @param vacante
+	 * @return
+	 */
+	@GetMapping("/create")
+	public String crear(@ModelAttribute Vacante vacante) {		
+		return "vacantes/formVacante";
+	}
+	
+	/**
+	 * Método que guarda la Vacante en la base de datos
+	 * @param vacante
+	 * @param result
+	 * @param model
+	 * @param multiPart
+	 * @param attributes
+	 * @return
+	 */
+	@PostMapping("/save")
+	public String guardar(@ModelAttribute Vacante vacante, BindingResult result, Model model,
+			@RequestParam("archivoImagen") MultipartFile multiPart, RedirectAttributes attributes ) {	
+		
+		if (result.hasErrors()){
+			
+			System.out.println("Existieron errores");
+			return "vacantes/formVacante";
+		}	
+		
+		if (!multiPart.isEmpty()) {
+			//String ruta = "/empleos/img-vacantes/"; // Linux/MAC
+			//String ruta = "c:/empleos/img-vacantes/"; // Windows
+			String nombreImagen = Utileria.guardarArchivo(multiPart, ruta);
+			if (nombreImagen!=null){ // La imagen si se subio				
+				vacante.setImagen(nombreImagen); // Asignamos el nombre de la imagen
+			}	
+		}
+				
+		// Guadamos el objeto vacante en la bd
+		serviceVacantes.guardar(vacante);
+		attributes.addFlashAttribute("msg", "Los datos de la vacante fueron guardados!");
+			
+		//return "redirect:/vacantes/index";
+		return "redirect:/vacantes/indexPaginate";		
+	}
+	
+	/**
+	 * Método para renderizar la vista de los Detalles para una  determinada Vacante
+	 * @param idVacante
+	 * @param model
+	 * @return
+	 */
+	@GetMapping("/view/{id}")
+	public String verDetalle(@PathVariable("id") int idVacante, Model model) {		
+		Vacante vacante = serviceVacantes.buscarPorId(idVacante);			
+		model.addAttribute("vacante", vacante);
+		return "detalle";
+	}
+	
+	/**
+	 * Método que renderiza el formulario HTML para editar una vacante
+	 * @param idVacante
+	 * @param model
+	 * @return
+	 */
+	@GetMapping("/edit/{id}")
+	public String editar(@PathVariable("id") int idVacante, Model model) {		
+		Vacante vacante = serviceVacantes.buscarPorId(idVacante);			
+		model.addAttribute("vacante", vacante);
+		return "vacantes/formVacante";
+	}
+	
+	/**
+	 * Método que elimina una Vacante de la base de datos
+	 * @param idVacante
+	 * @param attributes
+	 * @return
+	 */
+	@GetMapping("/delete/{id}")
+	public String eliminar(@PathVariable("id") int idVacante, RedirectAttributes attributes) {
+		
+		// Eliminamos la vacante.
+		serviceVacantes.eliminar(idVacante);
+			
+		attributes.addFlashAttribute("msg", "La vacante fue eliminada!.");
+		//return "redirect:/vacantes/index";
+		return "redirect:/vacantes/indexPaginate";
+	}
+	
+	/**
+	 * Agregamos al Model la lista de Categorias: De esta forma nos evitamos agregarlos en los metodos
+	 * crear y editar. 
+	 * @return
+	 */	
+	@ModelAttribute
+	public void setGenericos(Model model){
+		model.addAttribute("categorias", serviceCategorias.buscarTodas());	
+	}
+	
+	/**
+	 * Personalizamos el Data Binding para todas las propiedades de tipo Date
+	 * @param webDataBinder
+	 */
+	@InitBinder
+	public void initBinder(WebDataBinder webDataBinder) {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+		webDataBinder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+	}
+		
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\model\Categoria.java
+========================================
+/**
+ * Esta clase representa una entidad (un registro) en la tabla de Categorias de la base de datos
+ */
+package com.rayosoft.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "Categorias")
+public class Categoria {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment MySQL
+	private Integer id;
+	private String nombre;
+	private String descripcion;
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public String getNombre() {
+		return nombre;
+	}
+
+	public void setNombre(String nombre) {
+		this.nombre = nombre;
+	}
+
+	public String getDescripcion() {
+		return descripcion;
+	}
+
+	public void setDescripcion(String descripcion) {
+		this.descripcion = descripcion;
+	}
+
+	@Override
+	public String toString() {
+		return "Categoria [id=" + id + ", nombre=" + nombre + ", descripcion=" + descripcion + "]";
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\model\Perfil.java
+========================================
+
+/**
+ * Esta clase representa una entidad (un registro) en la tabla de Perfiles de la base de datos
+ */
+package com.rayosoft.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "Perfiles")
+public class Perfil {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment MySQL
+	private Integer id;
+	private String perfil;
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public String getPerfil() {
+		return perfil;
+	}
+
+	public void setPerfil(String perfil) {
+		this.perfil = perfil;
+	}
+
+	@Override
+	public String toString() {
+		return "Perfil [id=" + id + ", perfil=" + perfil + "]";
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\model\Solicitud.java
+========================================
+/**
+ * Esta clase representa una entidad (un registro) en la tabla de Solicitudes de la base de datos
+ */
+package com.rayosoft.model;
+
+import java.time.LocalDate;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "Solicitudes")
+public class Solicitud {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment MySQL
+	private Integer id;
+	private LocalDate fecha; // Fecha en que aplico el usuario para esta oferta de trabajo
+	private String comentarios;
+	private String archivo; // El nombre del archivo PDF, DOCX del CV.
+
+	@OneToOne
+	@JoinColumn(name = "idVacante") // foreignKey en la tabla de solicitudes
+	private Vacante vacante;
+
+	@OneToOne
+	@JoinColumn(name = "idUsuario") // foreignKey en la tabla de usuarios
+	private Usuario usuario;
+
+	public Solicitud() {
+		this.fecha = LocalDate.now();
+	}
+	
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public LocalDate getFecha() {
+		return fecha;
+	}
+
+	public void setFecha(LocalDate fecha) {
+		this.fecha = fecha;
+	}
+
+	public String getArchivo() {
+		return archivo;
+	}
+
+	public void setArchivo(String archivo) {
+		this.archivo = archivo;
+	}
+
+	public Vacante getVacante() {
+		return vacante;
+	}
+
+	public void setVacante(Vacante vacante) {
+		this.vacante = vacante;
+	}
+
+	public Usuario getUsuario() {
+		return usuario;
+	}
+
+	public void setUsuario(Usuario usuario) {
+		this.usuario = usuario;
+	}
+
+	public String getComentarios() {
+		return comentarios;
+	}
+
+	public void setComentarios(String comentarios) {
+		this.comentarios = comentarios;
+	}
+
+	@Override
+	public String toString() {
+		return "Solicitud [id=" + id + ", fecha=" + fecha + ", comentarios=" + comentarios + ", archivo=" + archivo
+				+ ", vacante=" + vacante + ", usuario=" + usuario + "]";
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\model\Usuario.java
+========================================
+/**
+ * Esta clase representa una entidad (un registro) en la tabla de Usuarios de la base de datos
+ */
+package com.rayosoft.model;
+
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "Usuarios")
+public class Usuario {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment MySQL
+	private Integer id;
+	private String username;
+	private String nombre;
+	private String email;
+	private String password;
+	private Integer estatus;	
+	private Date fechaRegistro;
+
+	// Relacion ManyToMany (Un usuario tiene muchos perfiles)
+	// Por defecto Fetch es FetchType.LAZY
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(name = "UsuarioPerfil", // tabla intermedia
+			joinColumns = @JoinColumn(name = "idUsuario"), // foreignKey en la tabla de UsuarioPerfil
+			inverseJoinColumns = @JoinColumn(name = "idPerfil") // foreignKey en la tabla de UsuarioPerfil
+	)
+	private List<Perfil> perfiles;
+	
+	
+	public Usuario() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	// Metodo para agregar perfiles
+	public void agregar(Perfil tempPerfil) {
+		if (perfiles == null) perfiles = new LinkedList<>();
+		perfiles.add(tempPerfil);
+	}
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getNombre() {
+		return nombre;
+	}
+
+	public void setNombre(String nombre) {
+		this.nombre = nombre;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public Integer getEstatus() {
+		return estatus;
+	}
+
+	public void setEstatus(Integer estatus) {
+		this.estatus = estatus;
+	}
+
+	public Date getFechaRegistro() {
+		return fechaRegistro;
+	}
+
+	public void setFechaRegistro(Date fechaRegistro) {
+		this.fechaRegistro = fechaRegistro;
+	}
+
+	public List<Perfil> getPerfiles() {
+		return perfiles;
+	}
+
+	public void setPerfiles(List<Perfil> perfiles) {
+		this.perfiles = perfiles;
+	}
+		
+	@Override
+	public String toString() {
+		return "Usuario [id=" + id + ", username=" + username + ", nombre=" + nombre + ", email=" + email
+				+ ", password=" + password + ", estatus=" + estatus + ", fechaRegistro=" + fechaRegistro + ", perfiles="
+				+ perfiles + "]";
+	}
+	
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\model\Vacante.java
+========================================
+/**
+ * Esta clase representa una entidad (un registro) en la tabla de Vacantes de la base de datos
+ */
+package com.rayosoft.model;
+
+import java.util.Date;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "Vacantes")
+public class Vacante {
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment MySQL
+	private Integer id;
+	private String nombre; // Nombre de la oferta de trabajo.
+	private String descripcion; // Descripcion corta de la oferta de trabajo
+	private Date fecha; // Fecha de publicacion de la oferta del trabajo.
+	private Double salario; // Salario aproximado que se ofrece por el trabajo.
+	private String estatus; // Valores [Creado, Aprobado, Eliminado].
+	private Integer destacado; // Valores [0, 1]. 0: No se muestra en la pag. principal | 1: Se muestra en la pagina principal.
+	private String imagen="no-image.png"; // Nombre del archivo de la imagen del logotipo de la empresa que ofrece el trabajo.
+	private String detalles; // Detalles de la oferta de trabajo.
+	
+	@OneToOne
+	@JoinColumn(name = "idCategoria") // foreignKey en la tabla de Vacantes	
+	private Categoria categoria; // Categoria a la que pertence la oferta de trabajo
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public String getNombre() {
+		return nombre;
+	}
+
+	public void setNombre(String nombre) {
+		this.nombre = nombre;
+	}
+
+	public Date getFecha() {
+		return fecha;
+	}
+
+	public void setFecha(Date fecha) {
+		this.fecha = fecha;
+	}
+
+	public String getEstatus() {
+		return estatus;
+	}
+
+	public void setEstatus(String estatus) {
+		this.estatus = estatus;
+	}
+
+	public Integer getDestacado() {
+		return destacado;
+	}
+
+	public void setDestacado(Integer destacado) {
+		this.destacado = destacado;
+	}
+
+	public String getImagen() {
+		return imagen;
+	}
+
+	public void setImagen(String imagen) {
+		this.imagen = imagen;
+	}
+
+	public String getDetalles() {
+		return detalles;
+	}
+
+	public void setDetalles(String detalles) {
+		this.detalles = detalles;
+	}
+
+	public Categoria getCategoria() {
+		return categoria;
+	}
+
+	public void setCategoria(Categoria categoria) {
+		this.categoria = categoria;
+	}	
+
+	public String getDescripcion() {
+		return descripcion;
+	}
+
+	public void setDescripcion(String descripcion) {
+		this.descripcion = descripcion;
+	}
+
+	public Double getSalario() {
+		return salario;
+	}
+
+	public void setSalario(Double salario) {
+		this.salario = salario;
+	}
+	
+	public void reset() {
+		this.imagen=null;
+	}
+
+	@Override
+	public String toString() {
+		return "Vacante [id=" + id + ", nombre=" + nombre + ", descripcion=" + descripcion + ", fecha=" + fecha
+				+ ", salario=" + salario + ", estatus=" + estatus + ", destacado=" + destacado + ", imagen=" + imagen
+				+ ", detalles=" + detalles + ", categoria=" + categoria + "]";
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\repository\CategoriasRepository.java
+========================================
+package com.rayosoft.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.rayosoft.model.Categoria;
+
+public interface CategoriasRepository extends JpaRepository<Categoria, Integer> {
+	
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\repository\PerfilesRepository.java
+========================================
+package com.rayosoft.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.rayosoft.model.Perfil;
+
+public interface PerfilesRepository extends JpaRepository<Perfil, Integer> {
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\repository\SolicitudesRepository.java
+========================================
+package com.rayosoft.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.rayosoft.model.Solicitud;
+
+public interface SolicitudesRepository extends JpaRepository<Solicitud, Integer> {
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\repository\UsuariosRepository.java
+========================================
+package com.rayosoft.repository;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.rayosoft.model.Usuario;
+
+public interface UsuariosRepository extends JpaRepository<Usuario, Integer> {
+	// Buscar usuario por username
+	Usuario findByUsername(String username);
+	List<Usuario> findByFechaRegistroNotNull();
+	
+	@Modifying
+    @Query("UPDATE Usuario u SET u.estatus=0 WHERE u.id = :paramIdUsuario")
+    int lock(@Param("paramIdUsuario") int idUsuario);
+	
+	@Modifying
+    @Query("UPDATE Usuario u SET u.estatus=1 WHERE u.id = :paramIdUsuario")
+    int unlock(@Param("paramIdUsuario") int idUsuario);
+	
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\repository\VacantesRepository.java
+========================================
+package com.rayosoft.repository;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.rayosoft.model.Vacante;
+
+public interface VacantesRepository extends JpaRepository<Vacante, Integer> {
+	
+	List<Vacante> findByEstatus(String estatus);
+	
+	List<Vacante> findByDestacadoAndEstatusOrderByIdDesc(int destacado, String estatus);
+	
+	List<Vacante> findBySalarioBetweenOrderBySalarioDesc(double s1, double s2);
+	
+	List<Vacante> findByEstatusIn(String[] estatus);
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\security\DatabaseWebSecurity.java
+========================================
+package com.rayosoft.security;
+
+import javax.sql.DataSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class DatabaseWebSecurity {
+	
+
+	
+	@Bean
+	public UserDetailsManager usersCustom(DataSource dataSource) {
+		JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
+		users.setUsersByUsernameQuery("select username, password, estatus from Usuarios where username=?");
+		users.setAuthoritiesByUsernameQuery("select u.username, p.perfil from UsuarioPerfil up " + 
+											"inner join Usuarios u on u.id = up.idUsuario "	+ 
+											"inner join Perfiles p on p.id = up.idPerfil " + "where u.username = ?");
+		return users;
+	}
+
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		
+		http.authorizeHttpRequests(authorize -> authorize
+
+			// Los recursos estáticos no requieren autenticación
+			.requestMatchers("/bootstrap/**", "/images/**", "/tinymce/**", "/logos/**").permitAll()
+	
+			// Las vistas públicas no requieren autenticación
+			.requestMatchers("/", "/login", "/signup", "/search", "/bcrypt/**", "/about", "/vacantes/view/**").permitAll()
+	
+			// Asignar permisos a URLs por ROLES
+			.requestMatchers("/solicitudes/create/**", "/solicitudes/save/**").hasAuthority("USUARIO")
+			.requestMatchers("/solicitudes/**").hasAnyAuthority("SUPERVISOR", "ADMINISTRADOR")
+			.requestMatchers("/vacantes/**").hasAnyAuthority("SUPERVISOR", "ADMINISTRADOR")
+			.requestMatchers("/categorias/**").hasAnyAuthority("SUPERVISOR", "ADMINISTRADOR")
+			.requestMatchers("/usuarios/**").hasAnyAuthority("ADMINISTRADOR")
+	
+			// Todas las demás URLs de la Aplicación requieren autenticación
+			.anyRequest().authenticated());
+
+		// El formulario de Login no requiere autenticacion
+		http.formLogin(form -> form.loginPage("/login").permitAll());
+		
+		return http.build();
+	}
+
+	/**
+	 * Implementación de Spring Security que encripta passwords con el algoritmo
+	 * Bcrypt
+	 * 
+	 * @return
+	 */
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+}
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\ICategoriasService.java
+========================================
+package com.rayosoft.service;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.rayosoft.model.Categoria;
+
+public interface ICategoriasService {
+	void guardar(Categoria categoria);
+	void eliminar(Integer idCategoria);
+	List<Categoria> buscarTodas();
+	Categoria buscarPorId(Integer idCategoria);
+	Page<Categoria> buscarTodas(Pageable page);
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\ISolicitudesService.java
+========================================
+package com.rayosoft.service;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.rayosoft.model.Solicitud;
+
+public interface ISolicitudesService {
+	void guardar(Solicitud solicitud);
+	void eliminar(Integer idSolicitud);
+	List<Solicitud> buscarTodas();
+	Solicitud buscarPorId(Integer idSolicitud);
+	Page<Solicitud> buscarTodas(Pageable page);
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\IUsuariosService.java
+========================================
+package com.rayosoft.service;
+
+import java.util.List;
+
+import com.rayosoft.model.Usuario;
+
+public interface IUsuariosService {
+	void guardar(Usuario usuario);
+	void eliminar(Integer idUsuario);
+	List<Usuario> buscarTodos();
+	List<Usuario> buscarRegistrados();
+	Usuario buscarPorId(Integer idUsuario);
+	Usuario buscarPorUsername(String username);
+	int bloquear(int idUsuario);
+	int activar(int idUsuario);
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\IVacantesService.java
+========================================
+package com.rayosoft.service;
+
+import java.util.List;
+
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.rayosoft.model.Vacante;
+
+public interface IVacantesService {
+	void guardar(Vacante vacante);
+	void eliminar(Integer idVacante);
+	List<Vacante> buscarTodas();
+	Vacante buscarPorId(Integer idVacante);
+	List<Vacante> buscarDestacadas();
+	Page<Vacante> buscarTodas(Pageable page);
+	List<Vacante> buscarByExample(Example<Vacante> example);
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\db\CategoriasServiceJpa.java
+========================================
+package com.rayosoft.service.db;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rayosoft.model.Categoria;
+import com.rayosoft.repository.CategoriasRepository;
+import com.rayosoft.service.ICategoriasService;
+
+@Service
+/**
+ * 	Hay 2 clases que implementan la interfaz ICategoriasService:
+ *		- CategoriasServiceImpl -> Guardamos las Categorias en una LinkedList
+ *		- CategoriasServiceJpa  -> Guardamos las Categorias en bd
+ *	Spring no puede decidir cual Inyectar. Nosotros tenemos que decidir.
+ *	Por lo tanto, con la anotación @Primary le decimos que esta es la implementación por Defecto.
+ *
+ */
+@Primary
+public class CategoriasServiceJpa implements ICategoriasService{
+
+	@Autowired
+	private CategoriasRepository categoriasRepo;
+	
+	@Override
+	public void guardar(Categoria categoria) {
+		categoriasRepo.save(categoria);
+	}
+
+	@Override
+	public void eliminar(Integer idCategoria) {
+		categoriasRepo.deleteById(idCategoria);
+	}
+
+	@Override
+	public List<Categoria> buscarTodas() {		
+		return categoriasRepo.findAll();
+	}
+
+	@Override
+	public Categoria buscarPorId(Integer idCategoria) {
+		Optional<Categoria> optional = categoriasRepo.findById(idCategoria);
+		if (optional.isPresent()) {
+			return optional.get();
+		}
+		return null;
+	}
+
+	@Override
+	public Page<Categoria> buscarTodas(Pageable page) {
+		return categoriasRepo.findAll(page);	
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\db\SolicitudesServiceJpa.java
+========================================
+package com.rayosoft.service.db;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rayosoft.model.Solicitud;
+import com.rayosoft.repository.SolicitudesRepository;
+import com.rayosoft.service.ISolicitudesService;
+
+@Service
+public class SolicitudesServiceJpa implements ISolicitudesService {
+
+	@Autowired
+	private SolicitudesRepository solicitudesRepo;
+	
+	@Override
+	public void guardar(Solicitud solicitud) {
+		solicitudesRepo.save(solicitud);
+	}
+
+	@Override
+	public void eliminar(Integer idSolicitud) {
+		solicitudesRepo.deleteById(idSolicitud);
+	}
+
+	@Override
+	public List<Solicitud> buscarTodas() {
+		return solicitudesRepo.findAll();
+	}
+
+	@Override
+	public Solicitud buscarPorId(Integer idSolicitud) {
+		Optional<Solicitud> optional = solicitudesRepo.findById(idSolicitud);
+		if (optional.isPresent()) {
+			return optional.get();
+		}
+		return null;
+	}
+
+	@Override
+	public Page<Solicitud> buscarTodas(Pageable page) {
+		return solicitudesRepo.findAll(page);
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\db\UsuariosServiceJpa.java
+========================================
+package com.rayosoft.service.db;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.rayosoft.model.Usuario;
+import com.rayosoft.repository.UsuariosRepository;
+import com.rayosoft.service.IUsuariosService;
+
+@Service
+public class UsuariosServiceJpa implements IUsuariosService{
+
+	@Autowired
+	private UsuariosRepository usuariosRepo;
+	
+	@Override
+	public void guardar(Usuario usuario) {usuariosRepo.save(usuario);}
+
+	@Override
+	public void eliminar(Integer idUsuario) {usuariosRepo.deleteById(idUsuario);}
+
+	@Override
+	public List<Usuario> buscarTodos() {return usuariosRepo.findAll();	}
+
+	@Override
+	public Usuario buscarPorId(Integer idUsuario) {
+		Optional<Usuario> optional = usuariosRepo.findById(idUsuario);
+		if (optional.isPresent()) return optional.get();
+		return null;
+	}
+	@Override
+	public Usuario buscarPorUsername(String username) {
+		return usuariosRepo.findByUsername(username);
+	}
+	@Override
+	public List<Usuario> buscarRegistrados() {		
+		return usuariosRepo.findByFechaRegistroNotNull();
+	}
+	@Transactional
+	@Override
+	public int bloquear(int idUsuario) {
+		int rows = usuariosRepo.lock(idUsuario);
+		return rows;
+	}
+
+	@Transactional
+	@Override
+	public int activar(int idUsuario) {
+		int rows = usuariosRepo.unlock(idUsuario);
+		return rows;
+	}
+
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\service\db\VacantesServiceJpa.java
+========================================
+package com.rayosoft.service.db;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rayosoft.model.Vacante;
+import com.rayosoft.repository.VacantesRepository;
+import com.rayosoft.service.IVacantesService;
+
+@Service
+/**
+ * 	Hay 2 clases que implementan la interfaz IVacantesService:
+ *		- VacantesServiceImpl -> Guardamos las Vacantes en una LinkedList
+ *		- VacantesServiceJpa  -> Guardamos las Vacantes en bd
+ *	Spring no puede decidir cual Inyectar. Nosotros tenemos que decidir.
+ *	Por lo tanto, con la anotación @Primary le decimos que esta es la implementación por Defecto.
+ *
+ */
+@Primary
+public class VacantesServiceJpa implements IVacantesService{
+
+	@Autowired
+	private VacantesRepository vacantesRepo;
+
+	@Override
+	public void guardar(Vacante vacante) {	vacantesRepo.save(vacante);	}
+
+	@Override
+	public void eliminar(Integer idVacante) {	vacantesRepo.deleteById(idVacante);	}
+
+	@Override
+	public List<Vacante> buscarTodas() {		return vacantesRepo.findAll();	}
+	@Override
+	public Vacante buscarPorId(Integer idVacante) {
+		Optional<Vacante> optional = vacantesRepo.findById(idVacante);
+		if (optional.isPresent()) 	return optional.get();
+		return null;
+	}
+	@Override
+	public List<Vacante> buscarDestacadas() {
+		return vacantesRepo.findByDestacadoAndEstatusOrderByIdDesc(1, "Aprobada");
+	}
+	@Override
+	public Page<Vacante> buscarTodas(Pageable page) {		
+		return vacantesRepo.findAll(page);
+	}
+
+	@Override
+	public List<Vacante> buscarByExample(Example<Vacante> example) {
+		return vacantesRepo.findAll(example);
+	}
+		
+}
+
+
+========================================
+ARCHIVO: empleos2026\src\main\java\com\rayosoft\util\Utileria.java
+========================================
+package com.rayosoft.util;
+
+import java.io.File;
+import java.io.IOException;
+import org.springframework.web.multipart.MultipartFile;
+
+public class Utileria {
+	
+	/**
+	 * Metodo que guarda un archivo atraves de un formulario HTML al disco duro.
+	 * @param multiPart
+	 * @return
+	 */
+	public static String guardarArchivo(MultipartFile multiPart, String ruta) {
+		// Obtenemos el nombre original del archivo.
+		String nombreOriginal = multiPart.getOriginalFilename();
+		// Reemplazamos en el nombre de archivo los espacios por guiones.
+		nombreOriginal = nombreOriginal.replace(" ", "-");
+		// Agregamos al nombre del archivo 8 caracteres aleatorios para evitar duplicados.
+		String nombreFinal = randomAlphaNumeric(8)+nombreOriginal;
+		try {
+			// Formamos el nombre del archivo para guardarlo en el disco duro.
+			File imageFile = new File(ruta + nombreFinal);
+			System.out.println("Archivo: " + imageFile.getAbsolutePath());
+			//Guardamos fisicamente el archivo en HD.
+			multiPart.transferTo(imageFile);
+			return nombreFinal;
+		} catch (IOException e) {
+			System.out.println("Error " + e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Metodo para generar una cadena aleatoria de longitud N
+	 * @param count
+	 * @return
+	 */
+	public static String randomAlphaNumeric(int count) {
+		String CARACTERES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		StringBuilder builder = new StringBuilder();
+		while (count-- != 0) {
+			int character = (int) (Math.random() * CARACTERES.length());
+			builder.append(CARACTERES.charAt(character));
+		}
+		return builder.toString();
+	}
+}
+
+========================================
+ARCHIVO: empleos2026\src\main\resources\application.properties
+========================================
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/empleos
+spring.datasource.username=root
+spring.datasource.password=root
+spring.jpa.generate-ddl=false
+#spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.MySQLDialect
+spring.jpa.show-sql=false
+spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+# A partir de Spring Boot 3.5.0 la propiedad << spring.servlet.multipart.enabled >> se debe omitir porque ya esta habilitada por defecto.
+#spring.servlet.multipart.enabled=true 
+spring.servlet.multipart.location=c:/tmp
+spring.servlet.multipart.max-file-size=2MB
+spring.data.web.pageable.default-page-size=5
+empleosapp.ruta.imagenes=C://empleos//img-vacantes//
+empleosapp.ruta.cv=C://empleos//files-cv//
+server.servlet.session.tracking-modes=cookie

@@ -4,13 +4,13 @@ import java.net.*;
 import java.util.Scanner;
 
 public class ChatClient {
-    public static void main(String[] args) {
+    public static void main(String[] args, Socket socket1) {
         String ip = "localhost"; // IP del servidor para pruebas
         int puerto = 5000;       // Puerto acordado
         Scanner sc = new Scanner(System.in);
 
         // El bloque try-with-resources gestiona la desconexión automáticamente si el servidor no está activo
-        try (Socket socket = new Socket(ip, puerto);
+        try (Socket socket = socket1;
              DataInputStream entrada = new DataInputStream(socket.getInputStream());
              DataOutputStream salida = new DataOutputStream(socket.getOutputStream())) {
 
