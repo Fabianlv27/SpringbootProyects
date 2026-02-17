@@ -3,7 +3,7 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 
-public class ChatClient {
+public class ChatClient2 {
     Scanner sc = new Scanner(System.in);
     private Socket socket;
     private DataInputStream bufferdeentrada = null;
@@ -80,7 +80,7 @@ public class ChatClient {
     }
 
     static void main() {
-        ChatClient cliente =new ChatClient();
+        ChatClient2 cliente =new ChatClient2();
         cliente.levantarConexion("localhost",5000);
         if (cliente.socket != null){
             cliente.flujos();

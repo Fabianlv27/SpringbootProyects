@@ -1,77 +1,101 @@
 package chatServerV2;
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 
 public class ChatServer {
-    public static void main(String[] args) {
-        int puerto = 5000; // El puerto especificado en el examen
 
-        // 1. Instanciamos el ServerSocket una sola vez
-        try (ServerSocket serverSocket = new ServerSocket(puerto)) {
-            System.out.println("Servidor iniciado en el puerto " + puerto + ". Esperando clientes...");
+    Scanner sc = new Scanner(System.in);
+    private ServerSocket serverSocket;
 
-            // Bucle infinito para aceptar peticiones
-            while (true) {
-                // Se detiene aquí hasta que un cliente se conecta
-                Socket clienteSocket = serverSocket.accept();
-                System.out.println("Nuevo cliente conectado desde: " + clienteSocket.getInetAddress());
+    final String COMANDO_TERMINACION = "SALIR";
 
-                // 2. Concurrencia: Lanzamos un hilo independiente para este cliente
-                ManejadorCliente manejador = new ManejadorCliente(clienteSocket);
-                Thread hiloCliente = new Thread(manejador);
-                hiloCliente.start();
+
+
+    public void ejecutarConexion(int puerto){
+        try{
+            serverSocket =new ServerSocket(puerto);
+            System.out.println("Esperando conexion entrante en el puerto " + puerto);
+            //Ahora colocamos el bucle while para el socket siga escuchando
+            //a varios clientes
+
+            while (true){
+                Socket socketCliente=serverSocket.accept();
+                System.out.println("Nuevo cliente conectado desde: " + socketCliente.getInetAddress());
+
+                new HiloCliente(socketCliente).start();
             }
         } catch (IOException e) {
-            System.out.println("Error en el servidor: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
-}
 
-// Esta clase contiene la "Lógica de intercambio" para cada cliente individual
-class ManejadorCliente implements Runnable {
-    private Socket socket;
 
-    public ManejadorCliente(Socket socket) {
-        this.socket = socket;
+    static void main() {
+      ChatServer cs=new ChatServer();
+      cs.ejecutarConexion(5000);
     }
 
-    @Override
-    public void run() {
-        try (
-                DataInputStream entrada = new DataInputStream(socket.getInputStream());
-                DataOutputStream salida = new DataOutputStream(socket.getOutputStream())
-        ) {
-            // 3. Lógica inicial: Recibir nombre de usuario
-            String nombreUsuario = entrada.readUTF();
+    class HiloCliente extends Thread{
+        //definimos las variables que implican la conexion de un
+        //solo cliente
+        private Socket socket;
+        private DataInputStream bufferdeentrada=null;
+        private DataOutputStream bufferdesalida=null;
 
-            // 4. Responder con el mensaje de bienvenida
-            salida.writeUTF("Bienvenido " + nombreUsuario + ", el servidor está listo");
-            salida.flush();
+        public HiloCliente(Socket socket){
+            this.socket=socket;
+        }
 
-            String mensaje;
-            // Bucle de comunicación con este cliente específico
-            do {
-                mensaje = entrada.readUTF(); // Espera el mensaje del cliente
+        public void flujos(){
+            try{
+                bufferdeentrada=new DataInputStream(socket.getInputStream());
+                bufferdesalida=new DataOutputStream(socket.getOutputStream());
+                bufferdesalida.flush();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-                if (!mensaje.equalsIgnoreCase("SALIR")) {
-                    // 5. Convertir a mayúsculas y añadir la longitud
-                    String respuesta = mensaje.toUpperCase() + " (Longitud: " + mensaje.length() + ")";
-                    salida.writeUTF(respuesta);
-                    salida.flush();
-                }
-            } while (!mensaje.equalsIgnoreCase("SALIR")); // Cierre si envía SALIR
+        public void recibirDatos(){
+            String cadena="";
+            try{
+                String nombreUsuario=(String)bufferdeentrada.readUTF();
+                bufferdesalida.writeUTF("Bienvenido "+ nombreUsuario+ ", el servidor esta listo");
+                bufferdesalida.flush();
+                do{
+                    cadena=(String)bufferdeentrada.readUTF();
+                    System.out.println("\n[Cliente " + nombreUsuario + "]=> " + cadena);
+                    if (!cadena.equalsIgnoreCase(COMANDO_TERMINACION)){
+                        String respuesta=cadena.toUpperCase() +" (Longitud: "+ cadena.length() + ")";
+                        bufferdesalida.writeUTF(respuesta);
+                        bufferdesalida.flush();
+                    }
 
-            System.out.println("El cliente " + nombreUsuario + " ha finalizado la conexión.");
+                }while(!cadena.equals(COMANDO_TERMINACION));
+            } catch (IOException e) {
+                System.out.println("Conexion perdida con un cliente.");
+            } finally {
+                cerrarConexion();
+            }
+        }
 
-        } catch (IOException e) {
-            System.out.println("Conexión perdida con un cliente.");
-        } finally {
-            // 6. Cierre: Cerrar el socket específico
-            try {
+        public void cerrarConexion(){
+            try{
+                bufferdeentrada.close();
+                bufferdesalida.close();
                 socket.close();
             } catch (IOException e) {
-                System.out.println("Error al cerrar el socket: " + e.getMessage());
+                throw new RuntimeException(e);
             }
+            System.out.println("Conversacion finalizada con un cliente.");
+        }
+
+        @Override
+        public void run() {
+            flujos();
+            recibirDatos();
         }
     }
+
 }
